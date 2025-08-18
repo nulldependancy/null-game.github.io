@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NULL_Game</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        #gamewindow {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #0f0;
+            background-color: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 10px #0f0;
+            width: 400px;
+            z-index: 1;
+        }
+        .title {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            animation: flicker 1.5s infinite;
+        }
+        @keyframes flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                opacity: 1;
+            }
+            20%, 24%, 55% {
+                opacity: 0.5;
+            }
+        }
+        .menu-button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .menu-button:hover {
+            background-color: #0f0;
+            color: #000;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #0f0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <div id="gamewindow">
+        <h1 class="title">NULL_Game</h1>
+        <button class="menu-button" onclick="startGame()">Play</button>
+        <button class="menu-button" onclick="window.open('https://github.com/nulldependancy', '_blank')">Github</button>
+        <button class="menu-button" onclick="window.close()">Exit</button>
+        <div class="footer">
+            © 2025 Logan McCaskill. Licensed under the MIT License.
+            Project by nulldependancy.
+        </div>
+    </div>
+    <script>
+        function startGame() {
+            // Placeholder for game start logic
+            alert('Game starting... (Placeholder)');
+        }
+
+        // Matrix animation
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()_+-=[]{}|;:,.<>?';
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#808080'; // Grey color for Matrix characters
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+                ctx.fillText(text, x, y);
+                if (y > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 33);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            drops.length = Math.floor(canvas.width / fontSize);
+            drops.fill(1);
+        });
+    </script>
+</body>
+</html>
