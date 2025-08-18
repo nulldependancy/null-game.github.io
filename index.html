@@ -66,15 +66,58 @@
             font-size: 0.8em;
             color: #0f0;
         }
+        #game-view {
+            text-align: left;
+            font-size: 1em;
+            color: #0f0;
+            white-space: pre-wrap;
+            min-height: 200px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #333;
+            height: 20px;
+            margin-top: 10px;
+            border: 1px solid #0f0;
+        }
+        .progress {
+            width: 98%;
+            height: 100%;
+            background-color: #0f0;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1em;
+            background-color: #0f0;
+            animation: blink 0.8s step-end infinite;
+        }
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
     <canvas id="matrix"></canvas>
     <div id="gamewindow">
         <h1 class="title">NULL_Game</h1>
-        <button class="menu-button" onclick="startGame()">Play</button>
-        <button class="menu-button" onclick="window.open('https://github.com/nulldependancy', '_blank')">Github</button>
-        <button class="menu-button" onclick="window.close()">Exit</button>
+        <div id="menu">
+            <button class="menu-button" onclick="startGame()">Play</button>
+            <button class="menu-button" onclick="window.open('https://github.com/nulldependancy', '_blank')">Github</button>
+            <button class="menu-button" onclick="window.close()">Exit</button>
+        </div>
+        <div id="game-view" style="display: none;"></div>
         <div class="footer">
             © 2025 Logan McCaskill. Licensed under the MIT License.
             Project by nulldependancy.
@@ -82,8 +125,59 @@
     </div>
     <script>
         function startGame() {
-            // Placeholder for game start logic
-            alert('Game starting... (Placeholder)');
+            // Hide menu and show game view
+            document.getElementById('menu').style.display = 'none';
+            const gameView = document.getElementById('game-view');
+            gameView.style.display = 'block';
+            
+            // Simulate sudo apt install sequence with typing effect
+            const installText = [
+                "Reading package lists... Done",
+                "Building dependency tree... Done",
+                "Reading state information... Done",
+                "The following packages will be installed:",
+                "  null-game",
+                "0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.",
+                "Need to get 1,234 kB of archives.",
+                "After this operation, 5,678 kB of additional disk space will be used.",
+                "Get:1 http://archive.nullgame.org null-game 1.0.0 [1,234 kB]",
+                "Fetched 1,234 kB in 2s (617 kB/s)",
+                "Selecting previously unselected package null-game.",
+                "(Reading database ... 12345 files and directories currently installed.)",
+                "Preparing to unpack .../null-game_1.0.0_amd64.deb ...",
+                "Unpacking null-game (1.0.0) ...",
+                "Setting up null-game (1.0.0) ...",
+                "Processing triggers for man-db (2.9.4-2) ...",
+                "Installing NULL_Game [98%]",
+                `<div class="progress-bar"><div class="progress"></div></div>`
+            ];
+            
+            let currentLine = 0;
+            let currentChar = 0;
+            gameView.innerHTML = '';
+            
+            function typeText() {
+                if (currentLine < installText.length) {
+                    if (currentChar < installText[currentLine].length) {
+                        gameView.innerHTML = installText.slice(0, currentLine).join('<br>') + 
+                            '<br>' + installText[currentLine].slice(0, currentChar + 1) + 
+                            '<span class="cursor"></span>';
+                        currentChar++;
+                        setTimeout(typeText, 20); // Adjust typing speed here
+                    } else {
+                        currentLine++;
+                        currentChar = 0;
+                        gameView.innerHTML = installText.slice(0, currentLine).join('<br>') + 
+                            '<br><span class="cursor"></span>';
+                        setTimeout(typeText, 200); // Pause between lines
+                    }
+                } else {
+                    // Ensure progress bar stays at 98%
+                    gameView.innerHTML = installText.join('<br>') + '<br><span class="cursor"></span>';
+                }
+            }
+            
+            typeText();
         }
 
         // Matrix animation
