@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NULL_Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         body {
             background-color: #000;
@@ -81,7 +83,6 @@
             border: 1px solid #0f0;
         }
         .progress {
-            width: 98%;
             height: 100%;
             background-color: #0f0;
             animation: pulse 2s infinite ease-in-out;
@@ -113,8 +114,8 @@
     <div id="gamewindow">
         <h1 class="title">NULL_Game</h1>
         <div id="menu">
-            <button class="menu-button" onclick="startGame()">Play</button>
-            <button class="menu-button" onclick="window.open('https://github.com/nulldependancy', '_blank')">Github</button>
+            <button class="menu-button" onclick="startDownload()">Download</button>
+            <button class="menu-button" onclick="window.open('https://github.com/42speed/null-game', '_blank')">Github</button>
             <button class="menu-button" onclick="window.close()">Exit</button>
         </div>
         <div id="game-view" style="display: none;"></div>
@@ -124,59 +125,118 @@
         </div>
     </div>
     <script>
-        function startGame() {
+        async function startDownload() {
             // Hide menu and show game view
             document.getElementById('menu').style.display = 'none';
             const gameView = document.getElementById('game-view');
             gameView.style.display = 'block';
-            
-            // Simulate sudo apt install sequence with typing effect
-            const installText = [
-                "Reading package lists... Done",
-                "Building dependency tree... Done",
-                "Reading state information... Done",
-                "The following packages will be installed:",
-                "  null-game",
-                "0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.",
-                "Need to get 1,234 kB of archives.",
-                "After this operation, 5,678 kB of additional disk space will be used.",
-                "Get:1 http://archive.nullgame.org null-game 1.0.0 [1,234 kB]",
-                "Fetched 1,234 kB in 2s (617 kB/s)",
-                "Selecting previously unselected package null-game.",
-                "(Reading database ... 12345 files and directories currently installed.)",
-                "Preparing to unpack .../null-game_1.0.0_amd64.deb ...",
-                "Unpacking null-game (1.0.0) ...",
-                "Setting up null-game (1.0.0) ...",
-                "Processing triggers for man-db (2.9.4-2) ...",
-                "Installing NULL_Game [98%]",
-                `<div class="progress-bar"><div class="progress"></div></div>`
+
+            // Dynamic download text synchronized with actual download
+            const downloadText = [
+                "Connecting to repository... Done",
+                "Fetching file list from 42speed/null-game...",
+                "Preparing download...",
+                "Downloading files: [0%]"
             ];
-            
             let currentLine = 0;
             let currentChar = 0;
+            let allFiles = [];
+            let totalFiles = 0;
+            let downloadedFiles = 0;
+            const zip = new JSZip();
+
             gameView.innerHTML = '';
-            
+
             function typeText() {
-                if (currentLine < installText.length) {
-                    if (currentChar < installText[currentLine].length) {
-                        gameView.innerHTML = installText.slice(0, currentLine).join('<br>') + 
-                            '<br>' + installText[currentLine].slice(0, currentChar + 1) + 
+                if (currentLine < downloadText.length) {
+                    if (currentChar < downloadText[currentLine].length) {
+                        gameView.innerHTML = downloadText.slice(0, currentLine).join('<br>') +
+                            '<br>' + downloadText[currentLine].slice(0, currentChar + 1) +
                             '<span class="cursor"></span>';
                         currentChar++;
-                        setTimeout(typeText, 20); // Adjust typing speed here
+                        setTimeout(typeText, 20); // Typing speed
                     } else {
                         currentLine++;
                         currentChar = 0;
-                        gameView.innerHTML = installText.slice(0, currentLine).join('<br>') + 
-                            '<br><span class="cursor"></span>';
-                        setTimeout(typeText, 200); // Pause between lines
+                        if (currentLine < downloadText.length) {
+                            gameView.innerHTML = downloadText.slice(0, currentLine).join('<br>') +
+                                '<br><span class="cursor"></span>';
+                            setTimeout(typeText, 200); // Pause between lines
+                        } else {
+                            // Start actual download after initial text
+                            fetchFiles();
+                        }
                     }
-                } else {
-                    // Ensure progress bar stays at 98%
-                    gameView.innerHTML = installText.join('<br>') + '<br><span class="cursor"></span>';
                 }
             }
-            
+
+            async function fetchFiles(path = '') {
+                try {
+                    const repoUrl = `https://api.github.com/repos/42speed/null-game/contents/${path}`;
+                    const response = await fetch(repoUrl);
+                    if (!response.ok) throw new Error(`Failed to fetch contents at ${path}`);
+                    const items = await response.json();
+
+                    for (const item of items) {
+                        if (item.type === 'file') {
+                            allFiles.push({ path: item.path, download_url: item.download_url });
+                        } else if (item.type === 'dir') {
+                            await fetchFiles(item.path); // Recursively fetch subdirectory contents
+                        }
+                    }
+
+                    totalFiles = allFiles.length;
+                    downloadText.push(`Found ${totalFiles} files to download...`);
+                    currentLine++;
+                    gameView.innerHTML = downloadText.slice(0, currentLine).join('<br>') +
+                        '<br><span class="cursor"></span>';
+                    setTimeout(downloadFiles, 200);
+                } catch (error) {
+                    handleError(error);
+                }
+            }
+
+            async function downloadFiles() {
+                try {
+                    for (const file of allFiles) {
+                        const fileResponse = await fetch(file.download_url);
+                        if (!fileResponse.ok) throw new Error(`Failed to fetch ${file.path}`);
+                        const fileContent = await fileResponse.blob();
+                        zip.file(file.path, fileContent);
+                        downloadedFiles++;
+                        const progress = Math.min(98, Math.round((downloadedFiles / totalFiles) * 98));
+                        downloadText[3] = `Downloading files: [${progress}%]`;
+                        if (downloadedFiles === totalFiles) {
+                            downloadText.push(`<div class="progress-bar"><div class="progress" style="width: ${progress}%"></div></div>`);
+                            downloadText.push("Finalizing archive...");
+                        }
+                        gameView.innerHTML = downloadText.join('<br>') + '<br><span class="cursor"></span>';
+                        await new Promise(resolve => setTimeout(resolve, 200)); // Simulate download time
+                    }
+
+                    // Generate and save ZIP
+                    zip.generateAsync({ type: 'blob' }).then(blob => {
+                        saveAs(blob, 'null-game.zip');
+                        downloadText.push("Download complete!");
+                        downloadText.push("To run null_Game.exe:");
+                        downloadText.push("1. Extract null-game.zip");
+                        downloadText.push("2. Right-click null_Game.exe > Properties");
+                        downloadText.push("3. Check 'Unblock' in General tab, then Apply");
+                        downloadText.push("4. Double-click to run");
+                        downloadText.push("WARNING: Only run if you trust the source!");
+                        gameView.innerHTML = downloadText.join('<br>') + '<br><span class="cursor"></span>';
+                    });
+                } catch (error) {
+                    handleError(error);
+                }
+            }
+
+            function handleError(error) {
+                console.error('Error during download:', error);
+                downloadText.push(`Error: ${error.message}`);
+                gameView.innerHTML = downloadText.join('<br>') + '<br><span class="cursor"></span>';
+            }
+
             typeText();
         }
 
@@ -218,5 +278,6 @@
             drops.fill(1);
         });
     </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'970f51f44a49d470',t:'MTc1NTQ5ODE4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
